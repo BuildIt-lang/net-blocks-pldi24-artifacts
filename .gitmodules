@@ -1,0 +1,3 @@
+[submodule "net-blocks"]
+	path = net-blocks
+	url = https://github.com/BuildIt-lang/net-blocks.git
