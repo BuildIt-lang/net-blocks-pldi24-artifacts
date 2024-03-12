@@ -120,13 +120,13 @@ To measure the lines of code of the core run the command -
 
 The total lines of code should be roughly the same as the paper. You can measure the lines of code for each module by running the command - 
 
-   wc -l net-blocks/include/modules/* net-blocks/src/modules/*
+    wc -l net-blocks/include/modules/* net-blocks/src/modules/*
 
 This should print the lines of code for the header and the source file for each module. Adding the numbers up should be close to the numbers in the Fig. 20. 
 
 Finally, for the runtime, run the command - 
 
-  wc -l $(find -wholename "./net-blocks/runtime/*")
+    wc -l $(find -wholename "./net-blocks/runtime/*")
 
 This should roughly match the final row in Fig. 20. This excercise shows that the implementation complexity of the modules (and hence new features) is relatively small as compared to the framework. The framework itself that generates all this code is not large since it is built on top of BuildIt. Feel free to browse the implementation of the core framework and the modules to get a better sense of the implementation complexity. 
 
