@@ -2,7 +2,7 @@ set -e
 
 # First we will build BuildIt
 make -C net-blocks/buildit -j$(nproc)
-
+ 
 # Next we will build net-blocks itself
 make -C net-blocks -j$(nproc)
 make -C net-blocks simple_test

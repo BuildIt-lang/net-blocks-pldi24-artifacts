@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
         }
 
 #ifdef MLX5
-        nb__mlx5_init();
+        nb__mlx5_init(argv[1]);
 #else
 	nb__linux_runtime_init(argv[1]);
 #endif
