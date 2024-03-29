@@ -11,7 +11,7 @@ fi
 run_one() {
 	sleep 1
 	echo "Running client for $1 protocol on interface = $2"
-	sudo ./scratch/$1/client_mlx5 $2 scratch/$1/cdf.txt
+	sudo ./scratch/$1/client_mlx5 $2 scratch/$1/cdf_mlx5.txt
 }
 
 run_one udp-like $1
@@ -22,6 +22,6 @@ run_one signalling $1
 run_one checksumming $1
 run_one shrunk $1  
 
-paste scratch/udp-like/cdf.txt scratch/udp-oe/cdf.txt scratch/inorder/cdf.txt scratch/reliable/cdf.txt scratch/signalling/cdf.txt scratch/checksumming/cdf.txt scratch/shrunk/cdf.txt > scratch/cdfs.txt
+paste scratch/udp-like/cdf_mlx5.txt scratch/udp-oe/cdf_mlx5.txt scratch/inorder/cdf_mlx5.txt scratch/reliable/cdf_mlx5.txt scratch/signalling/cdf_mlx5.txt scratch/checksumming/cdf_mlx5.txt scratch/shrunk/cdf_mlx5.txt > scratch/cdfs_mlx5.txt
 
-bash gen_plot.sh
+bash gen_plot_mlx5.sh
