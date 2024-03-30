@@ -10,6 +10,7 @@ fi
 
 
 run_one() {
+	sleep 5
 	echo "Running server for $1 protocol on interface = $2"
 	sudo ./scratch/$1/server_mlx5 $2
 }

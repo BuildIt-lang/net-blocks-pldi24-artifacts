@@ -9,7 +9,7 @@ fi
 
 
 run_one() {
-	sleep 1
+	sleep 5
 	echo "Running client for $1 protocol on interface = $2"
 	sudo ./scratch/$1/client_mlx5 $2 scratch/$1/cdf_mlx5.txt
 }

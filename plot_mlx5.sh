@@ -13,7 +13,7 @@ set style lines 5 lw 2 lc "red" pt 1 ps 2
 set style lines 6 lw 2 lc "green" pt 1 ps 2
 set style lines 7 lw 2 lc "black" pt 1 ps 2
 set key left
-set xrange [0:10]
+set xrange [2:7]
 plot    "scratch/cdfs_mlx5.txt" using ($0/10):($1/10000) with lines ls 1 title "UDP-Like", \
         "scratch/cdfs_mlx5.txt" using ($0/10):($2/10000) with lines ls 2 title "UDP-over-Ethernet", \
         "scratch/cdfs_mlx5.txt" using ($0/10):($3/10000) with lines ls 3 title "Inorder", \
