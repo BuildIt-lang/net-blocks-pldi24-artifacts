@@ -83,7 +83,7 @@ As explained before for the evaluation in the paper, we used systems with specif
 You can run the evaluation on two servers connected directly with an ethernet cable. We would recommend avoiding systems connected with a hub or switch since some devices drop non-standard protocol packets. NetBlocks is all about creating custom protocols and might not run on these devices. If you do not have access to two servers connected with a cable, you can simulate the scenario on a single system by creating a dummy interface and running the code all on one server. If you plan to use two servers, please clone and build this repo on both the servers by following the steps above. If you plan to use the dummy interface route, please create a dummy interface with the commands - 
 
     sudo ip link add dummy0 type dummy
-    sudo ifconfig dummy up
+    sudo ifconfig dummy0 up
 
 We will need the interface name for the steps ahead. If you are using the dummy interface, this name would be `dummy0`. If you are using an actual interface, please notedown the interface name of both the servers. Please also make sure the interfaces are "UP". They do not need to be assigned an IP address since we are implementing this protocols ourselves. If you are using an actual interface, we also recommend turning off LLDP (low level discovery protocol) on both the nodes with the command - `sudo systemctl stop lldpd` or equivalent for your system. This ensures that other packets do not interfere with our experiments. This is typically not a big issue since our experiments finish within a minute and LLDP messages are exchanged around every 10 mins. If you are not able to disable LLDPD, it should be fine. If the experiments gets stuck or crashes, just run it again. 
 
