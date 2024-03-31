@@ -250,7 +250,7 @@ module::hook_status encryption_module::hook_ingress(packet_t p) {
 Besides defining the instance of the module, we have defined the hook implementations. For the hook_send function, we obtain the start of the payload and the length of the payload. We then have a for loop that iterates over each value and performs a simple cipher on it. 
 Notice that all this code looks exactly how you would write it in a library except it uses BuildIt's dyn_var type for generating the code in the second stage. Similarly we implement the hook_ingress function, we perform the reverse of the send function. 
 
-Finally, we will activate the module by editing `net-blocks/src/impls/simple.cpp` and first adding the header `#include "modules/encryption.h" and then adding the line **before** the `checksum_module` is initialized  -
+Finally, we will activate the module by editing `net-blocks/src/impls/simple.cpp` and first adding the header `#include "modules/encryption.h"` and then adding the line **before** the `checksum_module` is initialized  -
 
     encryption_module::instance.init_module();
     // Next line should be checksum_module::instance.init_module();
