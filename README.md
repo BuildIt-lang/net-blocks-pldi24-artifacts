@@ -47,7 +47,7 @@ Now navigate to the main repostitory and continue the rest of the steps.
 
 First we will compile the dependency BuildIt, the NetBlocks core framework and all the modules and also genearate the specialized protocols for all the 7 configurations listed in Fig 19 of the paper. We have provided a single script that does all the aforementioned tasks. Run the command - 
 
-    bash build_all.sh
+    bash build-all.sh
 
 The command should first build all the packages and print a message for each configuration it compiles. If any of the steps fails, the script should print an error and fail. Please fix the error and run the script again and it should continue where it left off. 
 
