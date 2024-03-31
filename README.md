@@ -2,10 +2,11 @@
 
 ## Introduction
 This repository documemts the evaluation procedure for the artifacts of our PLDI 2024 paper titled "NetBlocks: Staging Layouts for High-Performance Custom Host Network Stacks". NetBlocks is a network DSL compiler built on top of the multi-stage programming framework [BuildIt](https://buildit.so). 
-NetBlocks adds a custom layout layer on top of BuildIt to generate modular layouts for binary data on the packet along with using high-performance staged Aspect Oriented Programming for modular features development and selection. The artifacts are divided into 3 parts - 
+NetBlocks adds a custom layout layer on top of BuildIt to generate modular layouts for binary data on the packet along with using high-performance staged Aspect Oriented Programming for modular features development and selection. The artifacts are divided into 4 parts - 
 1. Inspect the generated code and layouts for different network protocol configurations
 2. Evaluate round-trip latency of the various protocols and compare the performance to feature tradeoff (Fig 21. in the attached paper)
 3. Count the lines of code for all modules (Fig. 20 in the attached paper)
+4. Evaluate round-trip latency of the various protocols and compare the performance to feature tradeoff on the same hardware as in the paper (MLX Connect-X 5)
 
 Source code for the core framework, all implemented modules, the 7 configurations from the paper and the dependencies (BuildIt) are packaged into this repo as submodules. 
 
@@ -129,5 +130,55 @@ Finally, for the runtime, run the command -
     wc -l $(find -wholename "./net-blocks/runtime/*")
 
 This should roughly match the final row in Fig. 20. This excercise shows that the implementation complexity of the modules (and hence new features) is relatively small as compared to the framework. The framework itself that generates all this code is not large since it is built on top of BuildIt. Feel free to browse the implementation of the core framework and the modules to get a better sense of the implementation complexity. 
+
+
+## Section 4: Run Echo evaluation on our servers
+
+In this section, we will run the evaluation in Fig 21 on the same hardware that we used in the paper - 2 servers with a Mellanox Connect-X 5 NICs with 100Gpbs bandwidth and support for kernel bypass technology. For this section we have provided access to our servers. 
+The password for the servers should be shared on hotcrp as a comment. The instructions to connect are as below. Let us begin by trying to connect to our servers. 
+
+Since the servers (and the VMs) are behind our lab's firewalls, the command to ssh is a little long. Try running the following command to connect - 
+
+    ssh aeuser@netblocks-host1 -J aeuser@royal.csail.mit.edu,aeuser@zet1.csail.mit.edu
+
+This command should prompt you for a password 3 times (once for each of the three hosts involved in the hops). Paste the same password thrice. If everything works correctly you should be presented with a prompt `aeuser@netblocks-host1 $`. Try connecting to the second server with - 
+
+    ssh aeuser@netblocks-host2 -J aeuser@royal.csail.mit.edu,aeuser@zet2.csail.mit.edu
+
+Once again you should be prompted for the password 3 times. Enter the same password. Notice that the above command has 2 differences from the command before (netblocks-host2 and zet2 instead of netblocks-host1 and zet1). 
+
+If you are able to connect to both the servers, we request you to make a working directory for yourself in the home directory (to separate your files from the other reviewers). Feel free to name the directory whatever you like. We also request you to coordinate between yourseves on using the servers. Please don't run the experiments at the same time, they will most likely fail if two reviewers try to access the NIC at the same time. You can run the command `finger` on the servers to check if any else is logged in as the user `aeuser` (One output line means it is just you). This also means if you are done with the experiments, please exit the server and dont' leave any screen/tmux sessions behind so other reviewers can get a green light to run their experiments. 
+
+Start by cloning this repo on both the servers in your working directory (once again with the `--recursive` flag). Follow the steps from **Cloning the repository** and **Build all modules** like above. Do this on both the servers. 
+
+Next we will also build the versions of the test cases that use the NIC. Run the command on both the servers in the top level working directory of the cloned repo - 
+
+    bash build-mlx5.sh
+
+This command should complete without errors. All build dependencies have been installed on both the servers. Next we will make sure the interfaces are up and running. Start by running the command `ifconfig` on both the servers. You should see the interface `enp7s0` on both the servers. If it is not visible, you can bring it up with the command - 
+
+    sudo ifconfig enp7s0 up
+
+You have been given root access on both the servers without password, so this command should just run. 
+
+If everything is ready, let us run the test cases. On one of the server say `netblocks-host1` run the command - 
+
+    bash run_server_mlx5.sh enp7s0
+
+and on the other one run - 
+
+    bash run_client_mlx5.sh enp7s0
+
+Both the servers are symmetric, so the commands can be run on either servers. Just make sure to run the two commands on different servers. The test cases will take a while to run (2 mins) (mainly becauses it pauses between runs to get stable numbers). If everything runs correctly, a plot should be generated under `scratch/latency_plot_mlx5.pdf`. 
+
+There is small chance the experiments crash. This happens if a random other packet is sent over the network which sometimes happens due to LLDP packets showing up. If this happens, just run the last step again and it should pass. 
+
+Finally, you won't be able to directly view the plot pdf on the systems or scp them trivially due to the extra hops. Suppose you ran the client on `netblocks-host2`, you can use the following command **on your computer** to download the plot - 
+
+    ssh aeuser@netblocks-host2 -J aeuser@royal.csail.mit.edu,aeuser@zet2.csail.mit.edu 'cat /home/aeuser/<your directory>/net-blocks-pldi24-artifacts/scratch/latency_plot_mlx5.pdf' > latency_plot_mlx5.pdf
+
+This command again prompt you for the password 3 times. But should save a file `latency_plot_mlx5.pdf` in your current working directory. Open the pdf in your favorite pdf viewer and you should see a plot like the one in the paper. One key difference you might notice that the latency of all the lines is higher by half a microsecond. This happens because the hosts we have given you are VMs on the servers (due to the requirement for root access) and mapping physical NICs to VMs requires turning on [Intel IO_MMU](https://en.wikipedia.org/wiki/Input%E2%80%93output_memory_management_unit) which is known to have a slight overhead. Neverthless, this overhead applies to all the lines and just offsets all the lines, still maintaining the main takeaway of the paper. At the same time, the exact latency number are in the same single digit microsecond latency like in the paper as compared to the experiments before. To confirm that this overhead is indeed because of IOMMU, we ran the exact same steps directly on the hosts (outside the VMs) and attached the plot in this repo as `reference_latency_plot_mlx5.pdf` which is similar to the numbers in the paper. 
+
+    
 
 This concludes the artifact evaluation for the paper. If the reviewers wish to reproduce any more results from the paper, please reach out to us and we are happy to provide instructions. 
