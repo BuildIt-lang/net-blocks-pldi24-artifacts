@@ -7,6 +7,7 @@ NetBlocks adds a custom layout layer on top of BuildIt to generate modular layou
 2. Evaluate round-trip latency of the various protocols and compare the performance to feature tradeoff (Fig 21. in the attached paper)
 3. Count the lines of code for all modules (Fig. 20 in the attached paper)
 4. Evaluate round-trip latency of the various protocols and compare the performance to feature tradeoff on the same hardware as in the paper (MLX Connect-X 5)
+5. Demonstrate extensibility/reusability of the system by implementing a simple "encryption" module.
 
 Source code for the core framework, all implemented modules, the 7 configurations from the paper and the dependencies (BuildIt) are packaged into this repo as submodules. 
 
@@ -179,6 +180,23 @@ Finally, you won't be able to directly view the plot pdf on the systems or scp t
 
 This command again prompt you for the password 3 times. But should save a file `latency_plot_mlx5.pdf` in your current working directory. Open the pdf in your favorite pdf viewer and you should see a plot like the one in the paper. One key difference you might notice that the latency of all the lines is higher by half a microsecond. This happens because the hosts we have given you are VMs on the servers (due to the requirement for root access) and mapping physical NICs to VMs requires turning on [Intel IO_MMU](https://en.wikipedia.org/wiki/Input%E2%80%93output_memory_management_unit) which is known to have a slight overhead. Neverthless, this overhead applies to all the lines and just offsets all the lines, still maintaining the main takeaway of the paper. At the same time, the exact latency number are in the same single digit microsecond latency like in the paper as compared to the experiments before. To confirm that this overhead is indeed because of IOMMU, we ran the exact same steps directly on the hosts (outside the VMs) and attached the plot in this repo as `reference_latency_plot_mlx5.pdf` which is similar to the numbers in the paper. 
 
-    
+## Section 5: Demonstrate extensibility of the system
+
+One of the main contributions of the paper that sets NetBlocks apart from other network DSL compilers is that apart from creating new protocols from existing features networks engineers and researches can implement new features by just writing "library like" code and no compilers knowledge. To demonstrate this and the reusability of the system we will implement a dummy encryption module that just ciphers the bytes of the payload before sending and unciphers it on receiving it. This will involve generating a loop to iterate through the payload bytes and modify them. In a traditional compiler this would require writing creating IR nodes for the loops or just generate the code, but with NetBlocks we just have to add a new module that implements this feature. 
+
+
+You can run the following steps on either on your own system or on our servers. It should be the same. If you do it on your own server, you can use your favorite editor. On our servers, we have `vim` and `nano` installed.  
+
+Let us start by first defining the class for this new module. Create a new file `net-blocks/include/modules/encryption.h` and add the contents - 
+
+```
+```
+
+What we have done here is that we have created a new class `encryption_module` that extends the `module` type and we have overridden a few functions including the `init_module` function and the `hook_send` and `hook_ingress` functions. This is because the "encryption" feature will change the logic for sending a packet and receiving a packet. If further changes need to be done while establishing and destablishing a connection (like handshakes to exchange keys), the corresponding hook functions can also be extended. We have made the constructor of the class to be private and made a static instance to make this class into singleton class. Finally we have implemented the `get_module_name` function which helps with debugging. 
+
+Let us now implement the hook functions. Create a new file - `net-blocks/src/modules/encryption.cpp` and add the contents - 
+
+```
+```
 
 This concludes the artifact evaluation for the paper. If the reviewers wish to reproduce any more results from the paper, please reach out to us and we are happy to provide instructions. 
