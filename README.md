@@ -2,7 +2,7 @@
 
 ## Introduction
 This repository documemts the evaluation procedure for the artifacts of our PLDI 2024 paper titled "NetBlocks: Staging Layouts for High-Performance Custom Host Network Stacks". NetBlocks is a network DSL compiler built on top of the multi-stage programming framework [BuildIt](https://buildit.so). 
-NetBlocks adds a custom layout layer on top of BuildIt to generate modular layouts for binary data on the packet along with using high-performance staged Aspect Oriented Programming for modular features development and selection. The artifacts are divided into 4 parts - 
+NetBlocks adds a custom layout layer on top of BuildIt to generate modular layouts for binary data on the packet along with using high-performance staged Aspect Oriented Programming for modular features development and selection. The artifacts are divided into 5 parts - 
 1. Inspect the generated code and layouts for different network protocol configurations
 2. Evaluate round-trip latency of the various protocols and compare the performance to feature tradeoff (Fig 21. in the attached paper)
 3. Count the lines of code for all modules (Fig. 20 in the attached paper)
@@ -190,6 +190,25 @@ You can run the following steps on either on your own system or on our servers. 
 Let us start by first defining the class for this new module. Create a new file `net-blocks/include/modules/encryption.h` and add the contents - 
 
 ```
+#ifndef NBX_ENC_H
+#define NBX_ENC_H
+#include "core/framework.h"
+
+namespace net_blocks {
+class encryption_module: public module {
+public:
+        void init_module(void);
+        module::hook_status hook_send(builder::dyn_var<connection_t*> c, packet_t,
+                builder::dyn_var<char*> buff, builder::dyn_var<unsigned int> len, builder::dyn_var<int*> ret_len);
+        module::hook_status hook_ingress(packet_t);
+private:
+        encryption_module() = default;
+public:
+        static encryption_module instance;
+        const char* get_module_name(void) override { return "EncryptionModule"; }
+};
+}
+#endif
 ```
 
 What we have done here is that we have created a new class `encryption_module` that extends the `module` type and we have overridden a few functions including the `init_module` function and the `hook_send` and `hook_ingress` functions. This is because the "encryption" feature will change the logic for sending a packet and receiving a packet. If further changes need to be done while establishing and destablishing a connection (like handshakes to exchange keys), the corresponding hook functions can also be extended. We have made the constructor of the class to be private and made a static instance to make this class into singleton class. Finally we have implemented the `get_module_name` function which helps with debugging. 
@@ -197,6 +216,59 @@ What we have done here is that we have created a new class `encryption_module` t
 Let us now implement the hook functions. Create a new file - `net-blocks/src/modules/encryption.cpp` and add the contents - 
 
 ```
+#include "modules/encryption.h"
+
+namespace net_blocks {
+encryption_module encryption_module::instance;
+
+void encryption_module::init_module(void) {
+        // Register this module in the compiler pipeline
+        framework::instance.register_module(this);
+}
+module::hook_status encryption_module::hook_send(builder::dyn_var<connection_t*> c, packet_t p, builder::dyn_var<char*> buff, builder::dyn_var<unsigned int> len, builder::dyn_var<int*> ret_len) {
+        // Identify the address of the payload and the payload length from the packet
+        builder::dyn_var<unsigned char*> payload = net_packet["payload"]->get_addr(p);
+        builder::dyn_var<unsigned int> payload_len = net_packet["computed_total_len"]->get_integer(p) - (net_packet.get_total_size() - get_headroom() - 1);
+        // Iterate through each byte and "encrypt" it
+        for (builder::dyn_var<int> i = 0; i < payload_len; ++i)
+                payload[i] = (payload[i] + 0x55) % 256;
+        return module::hook_status::HOOK_CONTINUE;
+}
+module::hook_status encryption_module::hook_ingress(packet_t p) {
+        // Identify the address of the payload and the payload length from the packet
+        builder::dyn_var<unsigned char*> payload = net_packet["payload"]->get_addr(p);
+        builder::dyn_var<unsigned int> payload_len = net_packet["computed_total_len"]->get_integer(p) - (net_packet.get_total_size() - get_headroom() - 1);
+        // Iterate through each byte and "decrypt" it
+        for (builder::dyn_var<int> i = 0; i < payload_len; ++i)
+                payload[i] = (payload[i] + (256 - 0x55)) % 256;
+        return module::hook_status::HOOK_CONTINUE;
+}
+}
+     
 ```
 
+Besides defining the instance of the module, we have defined the hook implementations. For the hook_send function, we obtain the start of the payload and the length of the payload. We then have a for loop that iterates over each value and performs a simple cipher on it. 
+Notice that all this code looks exactly how you would write it in a library except it uses BuildIt's dyn_var type for generating the code in the second stage. Similarly we implement the hook_ingress function, we perform the reverse of the send function. 
+
+Finally, we will activate the module by editing `net-blocks/src/impls/simple.cpp` and first adding the header `#include "modules/encryption.h" and then adding the line **before** the `checksum_module` is initialized  -
+
+    encryption_module::instance.init_module();
+    // Next line should be checksum_module::instance.init_module();
+
+Notice we insert the encryption before the checksum module so that checksumming is performed after the changes to the payload. And that is it, our new module is inserted into the compiler pipeline. Let us generate the new protocol with this implementation by running the command - 
+
+    make -C net-blocks simple_test
+
+If everything is done correctly the build should complete. Before we run the generated code, let us inspect it to check if our logic has been inserted. Open `net-blocks/scratch/nb_simple.c` in our favorite editor. and scroll to the `nb__send` function. Around line 194 we should see our newly added logic for encryption and around line 262 under the `nb__run_ingress_step` function we should see the decryption logic. Notice this doesn't have overheads of the virtual functions we created. 
+
+Now let us run our new protocol to check if everything is correct by running the commands - 
+
+    ./net-blocks/build/test/simple_server &
+    ./net-blocks/build/test/simple_client
+
+If everything run correctly, the client and server should print the messages they received. Feel free to comment out of say the decryption loop from the `hook_ingress` hook function we added under `net-blocks/src/modules/encryption.cpp` and running all the steps to see that the programs now print gibberish, because the payload is handed over to the user as it is.  
+
 This concludes the artifact evaluation for the paper. If the reviewers wish to reproduce any more results from the paper, please reach out to us and we are happy to provide instructions. 
+
+
+
